@@ -1,7 +1,8 @@
-import '../../../global.css';
+import '../../global.css';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import React, { useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useState, useEffect } from 'react';
 import { Pressable, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 interface TasksProps {
@@ -14,6 +15,33 @@ export default function Index() {
   const [tasks, setTasks] = useState<TasksProps[]>([]);
   const [item, setItem] = useState('');
 
+  useEffect(() => {
+    loadTasks();
+  }, []);
+
+  useEffect(() => {
+    saveTasks();
+  }, [tasks]);
+
+  async function saveTasks() {
+    try {
+      await AsyncStorage.setItem('tasks', JSON.stringify(tasks));
+    } catch (error) {
+      console.error('Erro ao salvar as tarefas:', error);
+    }
+  }
+
+  async function loadTasks() {
+    try {
+      const storedTasks = await AsyncStorage.getItem('tasks');
+      if (storedTasks) {
+        setTasks(JSON.parse(storedTasks));
+      }
+    } catch (error) {
+      console.error('Erro ao carregar as tarefas:', error);
+    }
+  }
+
   function saveItem() {
     if (item.trim()) {
       setTasks([...tasks, { id: tasks.length + 1, name: item, complete: false }]);
@@ -25,6 +53,12 @@ export default function Index() {
     setTasks((prevTasks) =>
       prevTasks.map((task) => (task.id === id ? { ...task, complete: !task.complete } : task))
     );
+  }
+
+  function deleteTask(id: number) {
+    const updatedTasks = tasks.filter((task) => task.id !== id);
+    setTasks(updatedTasks);
+    saveTasks();
   }
 
   return (
@@ -59,7 +93,9 @@ export default function Index() {
 
               <Text className="text-lg text-slate-700">{item.name}</Text>
             </View>
-            <AntDesign name="delete" size={24} color={item.complete ? 'black' : 'slate-200'} />
+            <Pressable onPress={() => deleteTask(item.id)}>
+              <AntDesign name="delete" size={24} color={item.complete ? 'black' : 'slate-200'} />
+            </Pressable>
           </View>
         ))}
       </View>
